@@ -640,11 +640,9 @@ final class Cards {
     static String digest(PackageManager pm, String pkg) throws Exception {
         Signature[] sigs;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            PackageInfo pi = pm.getPackageInfo(pkg, PackageManager.GET_SIGNING_CERTIFICATES);
-            SigningInfo info = pi.signingInfo;
-            if (info == null) throw new CardException("package has no signing certificate");
-            if (info.hasMultipleSigners()) throw new CardException("package has more than one signer");
-            sigs = info.getApkContentsSigners();
+            // Kept out of this method body: SigningInfo does not exist before API 28, and a class
+            // reference inside a never-taken branch still makes the verifier on 5.x complain.
+            sigs = signingCertificates(pm, pkg);
         } else {
             PackageInfo pi = pm.getPackageInfo(pkg, PackageManager.GET_SIGNATURES);
             sigs = pi.signatures;
@@ -653,6 +651,16 @@ final class Cards {
             throw new CardException("package has " + (sigs == null ? 0 : sigs.length) + " signing certificates, expected one");
         }
         return hex(MessageDigest.getInstance("SHA-256").digest(sigs[0].toByteArray()));
+    }
+
+    /** API 28+: the one signer's certificates, via PackageInfo.signingInfo. */
+    @android.annotation.TargetApi(Build.VERSION_CODES.P)
+    private static Signature[] signingCertificates(PackageManager pm, String pkg) throws Exception {
+        PackageInfo pi = pm.getPackageInfo(pkg, PackageManager.GET_SIGNING_CERTIFICATES);
+        SigningInfo info = pi.signingInfo;
+        if (info == null) throw new CardException("package has no signing certificate");
+        if (info.hasMultipleSigners()) throw new CardException("package has more than one signer");
+        return info.getApkContentsSigners();
     }
 
     // ---- decision file (cards.json) --------------------------------------------------------------
