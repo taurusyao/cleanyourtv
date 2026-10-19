@@ -9,10 +9,23 @@
 
     <!-- Apps pinned to the dock row at the bottom, in this order. Missing apps are skipped. -->
     <string-array name="dock_apps">
-        <item>com.netflix.ninja</item>
-        <item>com.amazon.amazonvideo.livingroom</item>
-        <item>com.google.android.youtube.tv</item>
-        <item>in.startv.hotstar</item>
+        <item>com.xpgtv.live.tv</item>
+        <item>com.tbstv.live.tw</item>
+        <item>com.tv.qx</item>
+        <item>com.nkzb.tv</item>
+    </string-array>
+
+    <!-- Apps pinned to the front of the grid, in this order. Listed apps come first (right after the
+         dock), the rest stay alphabetical below them. Missing apps are skipped, never an error.
+         The first four are the same apps as dock_apps, so they form the dock row; positions 5 and up
+         are the first tiles of the grid. -->
+    <string-array name="app_order">
+        <item>com.xpgtv.live.tv</item>
+        <item>com.tbstv.live.tw</item>
+        <item>com.tv.qx</item>
+        <item>com.nkzb.tv</item>
+        <item>com.kanke.tv</item>
+        <item>app.yecao</item>
     </string-array>
 
     <!-- Apps never shown as tiles (e.g. the Live TV app, which the Inputs menu already covers). -->
