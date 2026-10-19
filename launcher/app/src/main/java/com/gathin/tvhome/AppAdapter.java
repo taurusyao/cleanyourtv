@@ -74,6 +74,11 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon,
+              String caption, int accent) {
+            this(kind, label, component, banner, icon, caption, accent, Intent.CATEGORY_LEANBACK_LAUNCHER);
+        }
+
+        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon,
               String caption, int accent, String category) {
             this.kind = kind;
             this.label = label;
@@ -185,7 +190,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent, category));
             } else {
-                fresh.add(new Entry(APP, String.valueOf(ri.loadLabel(pm)), component, banner, icon, null, 0, category));
+                fresh.add(new Entry(Entry.APP, String.valueOf(ri.loadLabel(pm)), component, banner, icon, null, 0, category));
             }
         }
         Collections.sort(fresh, (a, b) -> {
