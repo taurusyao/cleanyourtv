@@ -18,6 +18,12 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
         </intent>
+        <!-- Phone/tablet apps (stock settings, gallery, vendor players on a TV) carry only the plain
+             LAUNCHER filter; without this the Android 11+ package-visibility filter hides them. -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="com.gathin.tvhome.category.DOCK_CARD" />

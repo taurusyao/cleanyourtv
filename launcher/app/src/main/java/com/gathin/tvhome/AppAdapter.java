@@ -62,12 +62,19 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         final String name;
         /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
+        /**
+         * The category this activity actually answered: {@link Intent#CATEGORY_LEANBACK_LAUNCHER} or
+         * {@link Intent#CATEGORY_LAUNCHER}. A phone/tablet app has no leanback filter, so launching it
+         * with the leanback category would fail; this is what {@link #launch(Entry)} puts on the intent.
+         */
+        final String category;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
-            this(APP, label, component, banner, icon, null, 0);
+            this(APP, label, component, banner, icon, null, 0, Intent.CATEGORY_LEANBACK_LAUNCHER);
         }
 
-        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
+        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon,
+              String caption, int accent, String category) {
             this.kind = kind;
             this.label = label;
             this.component = component;
@@ -76,6 +83,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             this.icon = icon;
             this.name = caption == null ? label : label + " \u00B7 " + caption;
             this.ambient = accent;
+            this.category = category;
         }
     }
 
@@ -132,25 +140,52 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
      */
     void reload(List<Cards.Card> cards) {
         PackageManager pm = ctx.getPackageManager();
-        Intent probe = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
-        List<ResolveInfo> found = pm.queryIntentActivities(probe, 0);
         Map<String, Cards.Card> cardByPkg = new HashMap<>();
         for (Cards.Card c : cards) cardByPkg.put(c.pkg, c);
+
+        // TV apps answer CATEGORY_LEANBACK_LAUNCHER; phone/tablet apps (the stock settings, gallery,
+        // vendor players, ...) only answer CATEGORY_LAUNCHER. Query both, leanback first, and keep one
+        // tile per package: a package that has both filters is launched the leanback way.
+        List<ResolveInfo> candidates = new ArrayList<>();
+        Map<String, String> categoryOf = new HashMap<>();
+        for (String category : new String[]{Intent.CATEGORY_LEANBACK_LAUNCHER, Intent.CATEGORY_LAUNCHER}) {
+            List<ResolveInfo> hits;
+            try {
+                hits = pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(category), 0);
+            } catch (Exception e) {
+                continue;
+            }
+            if (hits == null) continue;
+            for (ResolveInfo ri : hits) {
+                if (ri.activityInfo == null) continue;
+                ComponentName cn = new ComponentName(ri.activityInfo.packageName, ri.activityInfo.name);
+                String key = cn.flattenToShortString();
+                if (categoryOf.containsKey(key)) continue;   // same activity, leanback wins
+                categoryOf.put(key, category);
+                candidates.add(ri);
+            }
+        }
+
+        Set<String> seenPkg = new HashSet<>();
         List<Entry> fresh = new ArrayList<>();
-        for (ResolveInfo ri : found) {
+        for (ResolveInfo ri : candidates) {
             if (ri.activityInfo == null) continue;
             String pkg = ri.activityInfo.packageName;
             if (pkg.equals(ctx.getPackageName()) || hidden.contains(pkg)) continue;
             ComponentName component = new ComponentName(pkg, ri.activityInfo.name);
             Cards.Card card = cardByPkg.get(pkg);
             if (card != null && !card.component.equals(component)) continue;   // the card stands in for this tile
+            // One tile per package (a module with both filters would otherwise show twice).
+            if (!seenPkg.add(pkg)) continue;
+            String category = categoryOf.get(component.flattenToShortString());
+            if (category == null) category = Intent.CATEGORY_LEANBACK_LAUNCHER;
             Drawable banner = ri.activityInfo.loadBanner(pm);
             if (banner == null) banner = ri.activityInfo.applicationInfo.loadBanner(pm);
             Drawable icon = ri.loadIcon(pm);
             if (card != null) {
-                fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent));
+                fresh.add(new Entry(Entry.CARD, card.label, component, banner, icon, card.caption, card.accent, category));
             } else {
-                fresh.add(new Entry(String.valueOf(ri.loadLabel(pm)), component, banner, icon));
+                fresh.add(new Entry(APP, String.valueOf(ri.loadLabel(pm)), component, banner, icon, null, 0, category));
             }
         }
         Collections.sort(fresh, (a, b) -> {
@@ -240,7 +275,7 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
             return;
         }
         Intent i = new Intent(Intent.ACTION_MAIN)
-                .addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER)
+                .addCategory(e.category)
                 .setComponent(e.component)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
