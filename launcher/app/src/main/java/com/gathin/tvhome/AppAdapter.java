@@ -237,11 +237,6 @@ public class AppAdapter extends RecyclerView.Adapter<AppAdapter.Holder> {
         int width = parent.getWidth() > 0 ? parent.getWidth() : parent.getMeasuredWidth();
         int inner = width - parent.getPaddingLeft() - parent.getPaddingRight();
         int w = tileWidthPx(inner, dockSize, density), h = tileHeightPx(w);
-        // Every tile draws the app's own icon, uniformly fitted inside the card, so no tile
-        // can look bigger or smaller than its neighbours (banners are wide art and would
-        // either crop the logo or make that tile read as a different size).
-        ((android.widget.ImageView) v.findViewById(R.id.banner))
-                .setScaleType(android.widget.ImageView.ScaleType.FIT_CENTER);
         View card = v.findViewById(R.id.card);
         ViewGroup.LayoutParams cardLp = card.getLayoutParams();
         cardLp.width = w;
